@@ -1,4 +1,9 @@
 from django.shortcuts import get_object_or_404
+from rest_framework import parsers, renderers
+from rest_framework.authtoken.models import Token
+from rest_framework.compat import coreapi, coreschema
+from rest_framework.schemas import ManualSchema
+from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, BasePermission,IsAuthenticated
@@ -6,9 +11,8 @@ from rest_framework import status
 from rest_framework.decorators import action
 
 from eneza.authentication.serializers import UserSerializer, AuthTokenSerializer,\
-                             ChangePasswordSerializer, EditUserSerializer
+                             EditUserSerializer
 from eneza.authentication.models import User
-
 class IsCurrentUser(BasePermission):
     def has_permission(self, request, view):
         pk = pk=view.kwargs.get('pk',None)
@@ -36,3 +40,51 @@ class UserView(ViewSet):
         user = self.get_user_object(pk)
         serializer =  UserSerializer(instance=user)
         return Response(serializer.data, status = status.HTTP_200_OK)
+
+    @action(detail=True, methods=["POST"], permission_classes = [IsAuthenticated,IsCurrentUser], name="edit-user")
+    def edit_user(self, request, pk=None):
+        user = self.get_user_object(pk)
+        serializer =  EditUserSerializer(data=request.data, context={"request":request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserSerializer(instance=self.get_user_object(pk)).data, status=status.HTTP_200_OK)
+
+
+class ObtainAuthToken(APIView):
+    throttle_classes = ()
+    permission_classes = ()
+    parser_classes = (parsers.FormParser, parsers.MultiPartParser, parsers.JSONParser,)
+    renderer_classes = (renderers.JSONRenderer,)
+    serializer_class = AuthTokenSerializer
+    if coreapi is not None and coreschema is not None:
+        schema = ManualSchema(
+            fields=[
+                coreapi.Field(
+                    name="email",
+                    required=True,
+                    location='form',
+                    schema=coreschema.String(
+                        title="email",
+                        description="Valid email for authentication",
+                    ),
+                ),
+                coreapi.Field(
+                    name="password",
+                    required=True,
+                    location='form',
+                    schema=coreschema.String(
+                        title="Password",
+                        description="Valid password for authentication",
+                    ),
+                ),
+            ],
+            encoding="application/json",
+        )
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key})

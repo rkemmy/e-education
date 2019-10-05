@@ -1,7 +1,10 @@
+
+from django.contrib.auth import authenticate
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 from rest_framework.validators import UniqueValidator
-from eneza.authentication.models import User
+from tutorials_tube.authentication.models import User
 
 class UserSerializer(serializers.ModelSerializer):
 
@@ -37,3 +40,49 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model=User
         fields=["id","first_name","last_name","email","password","password_confirm"]
+
+
+class AuthTokenSerializer(serializers.Serializer):
+    email = serializers.CharField(label=_("email"))
+    password = serializers.CharField(
+        label=_("Password"),
+        style={'input_type': 'password'},
+        trim_whitespace=False
+    )
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        if email and password:
+            user = authenticate(request=self.context.get('request'),
+                                email=email, password=password)
+
+            # The authenticate call simply returns None for is_active=False
+            # users. (Assuming the default ModelBackend authentication
+            # backend.)
+            if not user:
+                msg = _('Unable to log in with provided credentials.')
+                raise serializers.ValidationError(msg, code='authorization')
+        else:
+            msg = _('Must include "email" and "password".')
+            raise serializers.ValidationError(msg, code='authorization')
+
+        attrs['user'] = user
+        return attrs
+
+
+class EditUserSerializer(serializers.Serializer):
+    email = serializers.EmailField(
+            validators=[UniqueValidator(queryset=User.objects.all())],
+            required = False
+            )
+    first_name=serializers.CharField(max_length=32,required=False)
+    last_name=serializers.CharField(max_length=32, required=False)
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        for attr, value in validated_data.items():
+            setattr(user,attr,value)
+        user.save()
+        return True
