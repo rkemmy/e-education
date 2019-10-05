@@ -72,6 +72,27 @@ class AuthTokenSerializer(serializers.Serializer):
         return attrs
 
 
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(min_length=6, max_length=100,
+            write_only=True, required = True)
+
+    new_password = serializers.CharField(min_length=6, max_length=100,
+            write_only=True, required = True)
+
+    def validate_current_password(self, value):
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError(_("Invalid current password"), code="authentication")
+        return value
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        new_password = validated_data["new_password"]
+        user.set_password(new_password)
+        user.save()
+        return True
+
+        
 class EditUserSerializer(serializers.Serializer):
     email = serializers.EmailField(
             validators=[UniqueValidator(queryset=User.objects.all())],

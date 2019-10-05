@@ -11,13 +11,16 @@ from rest_framework import status
 from rest_framework.decorators import action
 
 from eneza.authentication.serializers import UserSerializer, AuthTokenSerializer,\
-                             EditUserSerializer
+                             ChangePasswordSerializer, EditUserSerializer
 from eneza.authentication.models import User
+
+
 class IsCurrentUser(BasePermission):
     def has_permission(self, request, view):
         pk = pk=view.kwargs.get('pk',None)
         user = get_object_or_404(User,pk=pk )
         return request.user == user
+
 
 class UserView(ViewSet):
     permission_classes=[AllowAny,]
@@ -40,6 +43,18 @@ class UserView(ViewSet):
         user = self.get_user_object(pk)
         serializer =  UserSerializer(instance=user)
         return Response(serializer.data, status = status.HTTP_200_OK)
+
+    @action(detail=False, methods=["POST"], permission_classes = [AllowAny,], name="forgot-password")
+    def forgot_password(self, request):
+        return Response({"error":"Not Implemented"},status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    @action(detail=True, methods=["POST"], permission_classes = [IsAuthenticated,IsCurrentUser], name="change-password")
+    def change_password(self, request, pk=None):
+        user = self.get_user_object(pk)
+        serializer = ChangePasswordSerializer(data=request.data, context={"request":request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"success":"password successfully changed"},status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["POST"], permission_classes = [IsAuthenticated,IsCurrentUser], name="edit-user")
     def edit_user(self, request, pk=None):
