@@ -1,7 +1,7 @@
 import datetime
 from django.db import transaction
 from rest_framework import serializers
-from eneza.models import VideoTutorial, Question, MultiChoiceQuestion,\
+from education.eneza.models import VideoTutorial, Question, MultiChoiceQuestion,\
         FreeFormQuestion, Quiz, MultiChoiceQuestionChoice, SubmittedSolution,\
         SubmittedSolutionActivity, SubmittedAnswer, SubmittedFreeformAnswer,SubmittedMultichoiceAnswer
 
