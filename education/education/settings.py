@@ -125,6 +125,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR,'media')
+MAX_VIDEO_UPLOAD_SIZE= config('MAX_VIDEO_UPLOAD_SIZE', cast=int, default=104857600)
+ALLOWED_VIDEO_EXTENSIONS = config('ALLOWED_VIDEO_EXTENSIONS', cast=Csv(), default=['mp4'])
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.BasicAuthentication',
