@@ -1,3 +1,4 @@
 from django.contrib import admin
+from eneza.models import VideoTutorial
 
-# Register your models here.
+admin.site.register(VideoTutorial)
