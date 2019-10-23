@@ -9,6 +9,7 @@ class AbstractBaseManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(is_active=True)
 
+
 class AbstractModel(models.Model):
     is_active = models.BooleanField(default=True)
     created_at =  models.DateTimeField(auto_now_add=True)
@@ -35,12 +36,14 @@ class AbstractModel(models.Model):
         abstract = True
         ordering = ('-updated_at', '-created_at')
 
+
 class Instructor(AbstractModel):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, related_name='instructor', on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'instructors'
         verbose_name_plural = gettext_lazy('Instructors')
+
 
 class Student(AbstractModel):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, related_name='student', on_delete=models.CASCADE)
@@ -49,16 +52,32 @@ class Student(AbstractModel):
         db_table = 'students'
         verbose_name_plural = gettext_lazy('Students')
 
-class VideoTutorial(AbstractModel):
+
+class Video(AbstractModel):
     MAX_VIDEO_UPLOAD_SIZE = settings.MAX_VIDEO_UPLOAD_SIZE
     ALLOWED_VIDEO_EXTENSIONS = settings.ALLOWED_VIDEO_EXTENSIONS
     video = models.FileField(validators=[FileExtensionValidator(ALLOWED_VIDEO_EXTENSIONS)], upload_to='video_tutorials')
+    class Meta:
+        verbose_name_plural = gettext_lazy('Videos')
+        db_table = 'videos'
+
+
+class VideoTutorial(AbstractModel):
+    YOUTUBE_EMBED='Youtube'
+    OTHER_EMBED='Other'
+    EMBED_TYPES=(
+        (YOUTUBE_EMBED,YOUTUBE_EMBED),
+        (OTHER_EMBED, OTHER_EMBED)
+    )
     title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
+    video_link = models.TextField()
+    embed_type = models.CharField(choices=EMBED_TYPES, max_length=255)
 
     class Meta:
         verbose_name_plural = gettext_lazy('VideoTutorials')
         db_table = 'video_tutorials'
+
 
 class Quiz(AbstractModel):
     video_tutorial = models.OneToOneField('VideoTutorial', related_name='quiz', on_delete=models.CASCADE)
@@ -66,6 +85,7 @@ class Quiz(AbstractModel):
     class Meta:
         verbose_name_plural = gettext_lazy('Quizes')
         db_table = 'quizes'
+
 
 class Question(AbstractModel):
     MULTI_CHOICE_QUESTION_TYPE='MULTI_CHOICE_QUESTION_TYPE'
@@ -88,11 +108,13 @@ class Question(AbstractModel):
         verbose_name_plural = gettext_lazy('Questions')
         ordering = ('-position',)
 
-class MultiChoiceQuestion(Question):
 
+class MultiChoiceQuestion(Question):
+  
     class Meta(Question.Meta):
         db_table='multi_choice_questions'
         verbose_name_plural = 'MultiChoiceQuestions'
+
 
 class MultiChoiceQuestionChoice(AbstractModel):
     question = models.ForeignKey('MultiChoiceQuestion', related_name='choices', on_delete=models.CASCADE)
@@ -108,6 +130,7 @@ class MultiChoiceQuestionChoice(AbstractModel):
         verbose_name_plural = gettext_lazy('MultiChoiceQuestionChoices')
         ordering = ('-position',)
 
+
 class FreeFormQuestion(Question):
     answer = models.TextField()
 
@@ -115,24 +138,26 @@ class FreeFormQuestion(Question):
         db_table='free_form_questions'
         verbose_name_plural = 'FreeFormQuestions'
 
-class SubmittedSolution(AbstractModel):
+
+class QuizSolution(AbstractModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="user_submitted_solutions", on_delete=models.PROTECT)
     quiz = models.ForeignKey(Quiz, related_name="quiz_submitted_solutions", on_delete=models.PROTECT)
     start = models.DateTimeField()
-    end = models.DateTimeField()
+    stop = models.DateTimeField(null=True)
     retake = models.BooleanField(default=False)
     complete = models.BooleanField(default=False)
     total_points = models.PositiveIntegerField(default=0)
+    sent_notification = models.BooleanField(default=False)
 
     class Meta:
-        db_table='submitted_solutions'
+        db_table='quiz_solutions'
         constraints = [
                 models.UniqueConstraint(fields=['user', 'quiz'], name="user-quiz")
                 ]
-        verbose_name_plural = gettext_lazy('SubmittedSolutions')
+        verbose_name_plural = gettext_lazy('QuizSolutions')
 
 
-class SubmittedSolutionActivity(AbstractModel):
+class QuizSolutionActivity(AbstractModel):
     RETAKE_COUNT="RETAKE_COUNT"
     START_TEST="START_TEST"
     END_TEST="END_TEST"
@@ -143,37 +168,40 @@ class SubmittedSolutionActivity(AbstractModel):
         (END_TEST, END_TEST),
         (CANCEL_TEST, CANCEL_TEST),
     ]
-    solution = models.ForeignKey(SubmittedSolution, related_name='solution_activities', on_delete=models.PROTECT)
-    acitivity = models.CharField(max_length=255, choices=ACTIVITIES)
+    solution = models.ForeignKey(QuizSolution, related_name='solution_activities', on_delete=models.PROTECT)
+    activity = models.CharField(max_length=255, choices=ACTIVITIES)
     context = models.TextField()
 
     class Meta:
-        db_table='submitted_solution_activities'
-        verbose_name_plural = gettext_lazy('SubmittedSolutionActivies')
+        db_table='quiz_solution_activities'
+        verbose_name_plural = gettext_lazy('QuizSolutionActivies')
 
-class SubmittedAnswer(AbstractModel):
-    solution = models.ForeignKey(SubmittedSolution, related_name='solution_answers', on_delete=models.PROTECT)
-    question = models.ForeignKey(Question, related_name="question_solutions", on_delete=models.PROTECT)
+
+class SubmittedMultichoiceAnswer(AbstractModel):
+    solution = models.ForeignKey(QuizSolution, related_name='quiz_multichoice_answers', on_delete=models.PROTECT)
+    question = models.ForeignKey(MultiChoiceQuestion, related_name="multichoice_answers", on_delete=models.PROTECT)
+    selected_choice = models.ForeignKey(MultiChoiceQuestionChoice, related_name="choice_answers", on_delete=models.PROTECT)
+    is_valid = models.BooleanField(default=False)
 
     class Meta:
-        db_table='submitted_answers'
-        constraints = [
-                models.UniqueConstraint(fields=['solution', 'question'], name="solution-question")
-                ]
-        verbose_name_plural = gettext_lazy('SubmittedAnswers')
-
-class SubmittedMultichoiceAnswer(SubmittedAnswer):
-    multichoice_question = models.ForeignKey(MultiChoiceQuestion, related_name="multichoice_answers", on_delete=models.PROTECT)
-    selected_choice = models.ForeignKey(MultiChoiceQuestionChoice, related_name="choice_answers", on_delete=models.PROTECT)
-
-    class Meta(SubmittedAnswer.Meta):
         db_table='submitted_multichoice_answers'
+        constraints = [
+                models.UniqueConstraint(fields=['solution', 'question'], name="multichoice_solution_question"),
+                models.UniqueConstraint(fields=['question', 'created_by'], name="multichoice_question_creator"),
+            ]
         verbose_name_plural = gettext_lazy('SubmittedMultichoiceAnswers')
 
-class SubmittedFreeformAnswer(SubmittedAnswer):
-    freeform_question = models.ForeignKey(FreeFormQuestion, related_name="freeform_answers", on_delete=models.PROTECT)
-    answer = models.TextField()
 
-    class Meta(SubmittedAnswer.Meta):
+class SubmittedFreeformAnswer(AbstractModel):
+    solution = models.ForeignKey(QuizSolution, related_name='quiz_freeform_answers', on_delete=models.PROTECT)
+    question = models.ForeignKey(FreeFormQuestion, related_name="freeform_answers", on_delete=models.PROTECT)
+    answer = models.TextField()
+    is_valid = models.BooleanField(default=False)
+
+    class Meta:
         db_table='submitted_freeform_answers'
+        constraints = [
+                models.UniqueConstraint(fields=['solution', 'question'], name="freeform_solution_question"),
+                models.UniqueConstraint(fields=['question', 'created_by'], name="freeform_question_creator"),
+            ]
         verbose_name_plural = gettext_lazy('SubmittedFreeformAnswers')

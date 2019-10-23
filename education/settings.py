@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'eneza',
+    'education',
+    'eneza.apps.EnezaConfig',
     'eneza.authentication',
 ]
 
@@ -149,3 +150,10 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
+
+#cors
+CORS_ORIGIN_ALLOW_ALL = True
+
+#sendgrid
+SENDGRID_API_KEY = config('SENDGRID_API_KEY')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')

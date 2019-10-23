@@ -1,0 +1,24 @@
+<html>
+    <body>
+        <p>Hi {{user.first_name}}</p>
+        <p>Below are the results for the quiz</p>
+
+        <table border="1">
+            <tbody>
+                <tr>
+                    <td>Quiz</td>
+                    <td>{{quiz.video_tutorial.title}}</td>
+                </tr>
+                <tr>
+                    <td>Time Taken</td>
+                    <td>{{time_taken}}</td>
+                </tr>
+                <tr>
+                    <td>Total Points</td>
+                    <td>{{solution.total_points}}</td>
+                </tr>
+            </tbody>
+        </table>
+        
+    </body>
+</html>
