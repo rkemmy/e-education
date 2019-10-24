@@ -14,13 +14,11 @@ from eneza.authentication.serializers import UserSerializer, AuthTokenSerializer
                              ChangePasswordSerializer, EditUserSerializer
 from eneza.authentication.models import User
 
-
 class IsCurrentUser(BasePermission):
     def has_permission(self, request, view):
         pk = pk=view.kwargs.get('pk',None)
         user = get_object_or_404(User,pk=pk )
         return request.user == user
-
 
 class UserView(ViewSet):
     permission_classes=[AllowAny,]
@@ -38,10 +36,9 @@ class UserView(ViewSet):
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=["GET"], permission_classes = [IsAuthenticated, IsCurrentUser], name="details")
-    def details(self, request, pk=None):
-        user = self.get_user_object(pk)
-        serializer =  UserSerializer(instance=user)
+    @action(detail=False, methods=["GET"], permission_classes = [IsAuthenticated], name="details")
+    def details(self, request):
+        serializer =  UserSerializer(instance=request.user)
         return Response(serializer.data, status = status.HTTP_200_OK)
 
     @action(detail=False, methods=["POST"], permission_classes = [AllowAny,], name="forgot-password")
@@ -64,6 +61,23 @@ class UserView(ViewSet):
         serializer.save()
         return Response(UserSerializer(instance=self.get_user_object(pk)).data, status=status.HTTP_200_OK)
 
+    def list(self, request):
+        return Response({"error":"Not Implemented"},status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def create(self, request):
+        return Response({"error":"Not Implemented"},status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def retrieve(self, request, pk=None):
+        return Response({"error":"Not Implemented"},status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def update(self, request, pk=None):
+        return Response({"error":"Not Implemented"},status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def partial_update(self, request, pk=None):
+        return Response({"error":"Not Implemented"},status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def destroy(self, request, pk=None):
+        return Response({"error":"Not Implemented"},status=status.HTTP_501_NOT_IMPLEMENTED)
 
 class ObtainAuthToken(APIView):
     throttle_classes = ()

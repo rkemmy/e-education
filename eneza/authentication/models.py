@@ -1,11 +1,10 @@
+from django.db import models
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import  PermissionsMixin
-from django.db import models
 
 from django.core.mail import send_mail
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -37,6 +36,7 @@ class UserManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True.')
 
         return self._create_user(email, password, **extra_fields)
+
 
 
 class AbstractUser(AbstractBaseUser, PermissionsMixin):
@@ -104,4 +104,3 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
 
 class User(AbstractUser):
     confirm_email = models.BooleanField(default=False)
-

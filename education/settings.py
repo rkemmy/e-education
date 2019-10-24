@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'eneza',
+    'education',
+    'eneza.apps.EnezaConfig',
     'eneza.authentication',
 ]
 
@@ -125,6 +126,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR,'media')
+MAX_VIDEO_UPLOAD_SIZE= config('MAX_VIDEO_UPLOAD_SIZE', cast=int, default=104857600)
+ALLOWED_VIDEO_EXTENSIONS = config('ALLOWED_VIDEO_EXTENSIONS', cast=Csv(), default=['mp4'])
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.BasicAuthentication',
@@ -144,3 +150,10 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
+
+#cors
+CORS_ORIGIN_ALLOW_ALL = True
+
+#sendgrid
+SENDGRID_API_KEY = config('SENDGRID_API_KEY')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')

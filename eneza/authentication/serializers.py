@@ -4,7 +4,8 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 from rest_framework.validators import UniqueValidator
-from tutorials_tube.authentication.models import User
+from eneza.authentication.models import User
+from eneza.exceptions import InvalidPermissionsException, SimpleValidationError
 
 class UserSerializer(serializers.ModelSerializer):
 
@@ -23,7 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate(self,data):
         if data["password"] != data["password_confirm"]:
-            raise serializers.ValidationError("PASSWORD_CONFIRMATION_ERROR")
+            raise SimpleValidationError(detail="Passwords Do not Match")
         return data
 
     def create(self,validated_data):
@@ -62,15 +63,14 @@ class AuthTokenSerializer(serializers.Serializer):
             # users. (Assuming the default ModelBackend authentication
             # backend.)
             if not user:
-                msg = _('Unable to log in with provided credentials.')
-                raise serializers.ValidationError(msg, code='authorization')
+                
+                raise SimpleValidationError(detail='Invalid Username or Password')
         else:
-            msg = _('Must include "email" and "password".')
-            raise serializers.ValidationError(msg, code='authorization')
+            msg = _('Must provide email and password')
+            raise SimpleValidationError(detail=msg)
 
         attrs['user'] = user
         return attrs
-
 
 class ChangePasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField(min_length=6, max_length=100,
@@ -80,7 +80,7 @@ class ChangePasswordSerializer(serializers.Serializer):
             write_only=True, required = True)
 
     def validate_current_password(self, value):
-        user = self.context["request"].user
+        user = self.context["request"].user  
         if not user.check_password(value):
             raise serializers.ValidationError(_("Invalid current password"), code="authentication")
         return value
@@ -92,7 +92,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.save()
         return True
 
-        
+
 class EditUserSerializer(serializers.Serializer):
     email = serializers.EmailField(
             validators=[UniqueValidator(queryset=User.objects.all())],
